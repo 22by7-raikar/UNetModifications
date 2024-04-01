@@ -1,11 +1,5 @@
-#Modify the training for Average Pool UNet #
- =======================================================================
-# file name:    train.py
-# description:  train network
-# authors:      Xihan Ma, Mingjie Zeng
-# date:         2022-02-27
-# version:
-# =======================================================================
+#Modify the training for Average Pool UNet
+
 import argparse
 
 import cv2
@@ -38,13 +32,11 @@ Path(dir_trainlog).mkdir(parents=True, exist_ok=True)
 Path(dir_testlog).mkdir(parents=True, exist_ok=True)
 Path(dir_savedmodel).mkdir(parents=True, exist_ok=True)
 
-
 def dataset(val_percent: float = 0.1,
             img_scale: float = None):
   ''' create training set and validation set
   @param val_percent:
   '''
-  # random_generator = RandomGenerator()  # for data augmentation
   random_generator = None
 
   subjectList = [0]
@@ -81,14 +73,8 @@ def train_net(net, train_set: Dataset, val_set: Dataset, device,
         Device:          {device.type}
         Mixed Precision: {amp}''')
 
-  # ========== Set up the optimizer, loss, learning rate scheduler, k-fold ==========
-  # L2_reg = 1e-6  # 1e-8
-  # optimizer = torch.optim.RMSprop(net.parameters(), lr=learning_rate, weight_decay=L2_reg, momentum=0.9)
   optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
-
   scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=4) ###
-  # scheduler = torch.optim.lr_scheduler.LinearLR(optimizer)
-  # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, int(epochs/10), gamma=0.8)
   grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
 
   loss_mse = nn.MSELoss()
@@ -102,7 +88,6 @@ def train_net(net, train_set: Dataset, val_set: Dataset, device,
   loss_dice_rec = []
   loss_ce_rec = []
 
-  # ========== Begin training ==========
   for epoch in range(1, epochs+1):
     net.train()
     with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
@@ -118,36 +103,17 @@ def train_net(net, train_set: Dataset, val_set: Dataset, device,
         images = images.to(device=device)
         masks_true = masks_true.to(device=device)
 
-        # print(f'input shape: {images.shape}')
-        # cv2.imwrite('input.png', 255*tensor2array(images))
-
-        # print(f'output gt shape: {masks_true.shape}')
-        # cv2.imwrite('gt.png', 255*tensor2array(masks_true))
-
         with torch.cuda.amp.autocast(enabled=amp):
-          # masks_pred = net(images)
 
           if isAttention == True:
             masks_pred, prob_pred, att_mask = att_predict(images, net, device=device)
-            # print(f"type pred_att_mask:{type(att_mask)}")
-            # print(f"pred_att_mask:{att_mask}")
           else:
-            # prob_pred = predict(images, net, enReg=False, device=device)
             prob_pred = net(images)
-            
-            # print(f'prediction: {prob_pred.shape}, avg val: {prob_pred.mean()}, min val: {prob_pred.min()}')
-            # cv2.imwrite('pred.png', 255*tensor2array(prob_pred))
 
-          # ===== use ce to supervise =====
           mse = loss_mse(prob_pred, masks_true)
           ce = loss_ce(prob_pred, masks_true)
-          # cossim = loss_cossim(prob_pred, masks_true)
           huber = loss_hu(prob_pred, masks_true)
-          # loss = loss_w*mse + (1-loss_w)*ce
           loss = loss_w*huber
-          # ==================================================
-
-          # print(f'CE loss: {loss_CE}, dice loss: {loss_dice}, total loss: {loss}')
 
         optimizer.zero_grad(set_to_none=True)
         grad_scaler.scale(loss).backward()
@@ -158,7 +124,7 @@ def train_net(net, train_set: Dataset, val_set: Dataset, device,
         global_step += 1
         pbar.set_postfix(**{'loss (batch)': loss.item()})
 
-        # ===== Evaluation round =====
+
         division_step = (n_train // (10 * batch_size))
         if division_step > 0:
           if global_step % division_step == 0:
@@ -171,14 +137,12 @@ def train_net(net, train_set: Dataset, val_set: Dataset, device,
               
             val_score, val_score_std = evaluate_mse(net, val_loader, device, isAttention=isAttention)
 
-            # scheduler.step(val_score)
-            # scheduler.step()
-
             print(f'''Validation info:
                   Learning rate: {optimizer.param_groups[0]['lr']}
                   Validation Score: {val_score:.4f} ± {val_score_std:.4f}
                   Step: {global_step}
                   Epoch: {epoch}''')
+                  
             loss_ce_rec.append(loss.item())
             val_score_rec.append(val_score.item())
 
@@ -222,12 +186,8 @@ if __name__ == '__main__':
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   print(f"Using device {device}")
 
-  net = UNet(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
   net = AvgPoolUNet(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
-  # net = AttentionUNet(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
-  # net = UNet_dilation(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
-  # net = AttentionUNet_dilation(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
-  
+
   print(f'''Network:\n
         \t{net.n_channels} input channels\n
         \t{net.n_classes} output channels (classes)\n

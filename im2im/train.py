@@ -1,4 +1,5 @@
-# =======================================================================
+#Modify the training for Average Pool UNet #
+ =======================================================================
 # file name:    train.py
 # description:  train network
 # authors:      Xihan Ma, Mingjie Zeng

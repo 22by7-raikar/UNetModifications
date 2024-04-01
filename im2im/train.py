@@ -18,9 +18,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
 
 from unet.model import UNet
-from unet.model import AttentionUNet
-from unet.model import UNet_dilation
-from unet.model import AttentionUNet_dilation
+from unet.model import AvgPoolUNet
+
 from utils.data_loader import ConcatenateDataset, SingleSubjectDataset, RandomGenerator
 from utils.predict import predict, att_predict
 from utils.evaluate import evaluate_mse, save_eval, att_save_eval

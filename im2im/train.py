@@ -223,6 +223,7 @@ if __name__ == '__main__':
   print(f"Using device {device}")
 
   net = UNet(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
+  net = AvgPoolUNet(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
   # net = AttentionUNet(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
   # net = UNet_dilation(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)
   # net = AttentionUNet_dilation(n_channels=1, n_classes=args.classes, bilinear=args.bilinear)

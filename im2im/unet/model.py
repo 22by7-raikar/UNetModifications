@@ -1,11 +1,5 @@
 #Modified by Anuj 1st April 2024 #
 
-# ===============================================================
-# file name:    model.py
-# description:  naive U-Net implementation
-# author:       Xihan Ma, Mingjie Zeng
-# date:         2022-11-12
-# ===============================================================
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -29,6 +23,20 @@ class DoubleConv(nn.Module):
 
   def forward(self, x):
     return self.double_conv(x)
+
+
+class Down(nn.Module):
+  """Downscaling with maxpool then double conv"""
+
+  def __init__(self, in_channels, out_channels):
+    super().__init__()
+    self.maxpool_conv = nn.Sequential(
+        nn.MaxPool2d(2),
+        DoubleConv(in_channels, out_channels)
+    )
+
+  def forward(self, x):
+    return self.maxpool_conv(x)
 
 
 class AvgDown(nn.Module):
@@ -176,3 +184,4 @@ if __name__ == '__main__':
   test_img = torch.rand((1, 1, 100, 100))
   test_out = net(test_img)
   print(f'test in: {test_img}\ntest out: {test_out}')
+
